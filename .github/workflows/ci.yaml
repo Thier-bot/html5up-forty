@@ -8,7 +8,6 @@ on:
 env:
   IMAGE_NAME: ci-html
   IMAGE_TAG: 1.0.1
-  DOCKER_REGISTRY: ${{ secrets.DOCKERHUB_USERNAME }}
 
 jobs:
 
@@ -26,7 +25,7 @@ jobs:
         run: |
           echo "IMAGE_NAME: $IMAGE_NAME"
           echo "IMAGE_TAG: $IMAGE_TAG"
-          echo "DOCKER_REGISTRY: $DOCKER_REGISTRY"
+          echo "DOCKER_REGISTRY: ${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to Docker Hub
         run: |
@@ -35,7 +34,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG .
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:$IMAGE_TAG .
 
       - name: Verify image
         run: |
@@ -43,12 +42,12 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker push $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:$IMAGE_TAG
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
-          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/ci-html-demo:latest
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           format: table
           severity: CRITICAL,HIGH
           exit-code: 1
@@ -60,16 +59,16 @@ jobs:
   # ===============================
   deploy:
     needs: ci
-    runs-on: aws-runner
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Pull latest image
+      - name: Start deploy job
         run: |
-          echo "Hello deploy"
+          echo "Starting deployment of $IMAGE_NAME:$IMAGE_TAG"
 
       - name: Pull latest image
         run: |
-          docker pull $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:$IMAGE_TAG
 
       - name: Stop existing container
         run: |
@@ -84,4 +83,4 @@ jobs:
           docker run -d \
             -p 80:80 \
             --name ci-app \
-            $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+            ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:$IMAGE_TAG
