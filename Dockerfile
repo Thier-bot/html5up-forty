@@ -1,6 +1,9 @@
 # Use official Nginx image as base (for serving static content)
 FROM nginx:alpine
 
+# Update all packages to fix known vulnerabilities (e.g. CVE-2026-22184 in zlib)
+RUN apk update && apk upgrade --no-cache
+
 # Copy our app files into the default Nginx document root (/usr/share/nginx/html)
 COPY index.html /usr/share/nginx/html/
 COPY elements.html /usr/share/nginx/html/
